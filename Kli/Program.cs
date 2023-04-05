@@ -22,8 +22,9 @@ namespace Kli
             {
                 using HttpClient client = new HttpClient();
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                string os = GetOperatingSystem();
 
-                JObject requestBody = BuildRequestBody(userInput, cwd);
+                JObject requestBody = BuildRequestBody(userInput, cwd, os);
                 HttpResponseMessage response = await client.PostAsync(
                     "https://api.openai.com/v1/chat/completions",
                     new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json")
@@ -58,14 +59,14 @@ namespace Kli
             }
         }
 
-        private static JObject BuildRequestBody(string userInput, string cwd)
+        private static JObject BuildRequestBody(string userInput, string cwd, string os)
         {
             return new JObject(
                 new JProperty("model", "gpt-3.5-turbo"),
                 new JProperty("messages", new JArray(
                     new JObject(
                         new JProperty("role", "system"),
-                        new JProperty("content", $"You are a helpful assistant. You will generate PowerShell, Git, Node.js, and other relevant command-line commands based on user input. Your response should contain ONLY the command and NO explanation. Do NOT ever use newlines to separate commands, instead use ';'. The current working directory is '{cwd}'.")
+                        new JProperty("content", $"You are a helpful assistant. You will generate command-line commands for PowerShell, Bash, Zsh, Git, Node.js, and other relevant command-line tools based on user input. Your response should contain ONLY the command and NO explanation. Do NOT ever use newlines to separate commands, instead use ';' for PowerShell, Bash, and Zsh. The current working directory is '{cwd}', and the user's operating system is '{os}'.")
                     ),
                     new JObject(
                         new JProperty("role", "user"),
@@ -107,23 +108,34 @@ namespace Kli
             Console.WriteLine("\nExecuting command...");
             Console.ResetColor();
 
-            System.Diagnostics.Process process = new System.Diagnostics.Process
+            System.Diagnostics.Process process = new System.Diagnostics.Process();
+            string os = GetOperatingSystem();
+
+            if (os == "Unix" || os == "MacOSX")
             {
-                StartInfo = new System.Diagnostics.ProcessStartInfo
-                {
-                    FileName = "powershell.exe",
-                    Arguments = "-NoProfile -ExecutionPolicy Bypass -Command " + command,
-                    RedirectStandardOutput = true,
-                    UseShellExecute = false,
-                    CreateNoWindow = true,
-                }
-            };
+                process.StartInfo.FileName = "/bin/bash";
+                process.StartInfo.Arguments = $"-c \"{command}\"";
+            }
+            else
+            {
+                process.StartInfo.FileName = "powershell.exe";
+                process.StartInfo.Arguments = $"-NoProfile -ExecutionPolicy Bypass -Command {command}";
+            }
+
+            process.StartInfo.RedirectStandardOutput = true;
+            process.StartInfo.UseShellExecute = false;
+            process.StartInfo.CreateNoWindow = true;
             process.Start();
 
             string output = process.StandardOutput.ReadToEnd();
             process.WaitForExit();
 
             Console.WriteLine(output);
+        }
+
+        private static string GetOperatingSystem()
+        {
+            return Environment.OSVersion.Platform.ToString();
         }
     }
 }
