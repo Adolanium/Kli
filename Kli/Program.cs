@@ -65,7 +65,7 @@ namespace Kli
                 new JProperty("messages", new JArray(
                     new JObject(
                         new JProperty("role", "system"),
-                        new JProperty("content", $"You are a helpful assistant. You will generate PowerShell commands based on user input. Your response should contain ONLY the command and NO explanation. Do NOT ever use newlines to separate commands, instead use ';' or '&&'. The current working directory is '{cwd}'.")
+                        new JProperty("content", $"You are a helpful assistant. You will generate PowerShell, Git, Node.js, and other relevant command-line commands based on user input. Your response should contain ONLY the command and NO explanation. Do NOT ever use newlines to separate commands, instead use ';'. The current working directory is '{cwd}'.")
                     ),
                     new JObject(
                         new JProperty("role", "user"),
@@ -78,6 +78,7 @@ namespace Kli
 
         private static void DisplayError(string message)
         {
+            Console.WriteLine();
             Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine($"Error: {message}");
             Console.ResetColor();

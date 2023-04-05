@@ -1,6 +1,6 @@
 # Kli - Command Line Assistant
 
-Kli is a simple command-line assistant that generates PowerShell commands based on user input. It utilizes OpenAI's GPT-3.5-turbo to provide intelligent command suggestions. With Kli, you can easily and quickly generate commands without the need to memorize them.
+Kli is a versatile command-line assistant that generates PowerShell, Git, Node.js, and other command-line tool commands based on user input. It utilizes OpenAI's GPT-3.5-turbo to provide intelligent command suggestions. With Kli, you can easily and quickly generate commands without the need to memorize them.
 
 ## Features
 
