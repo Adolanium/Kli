@@ -1,13 +1,23 @@
-﻿using Newtonsoft.Json.Linq;
+﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace Kli
 {
     class Program
     {
+        private static Dictionary<string, string> _cache = new Dictionary<string, string>();
+        private const string CacheFileName = "cache.json";
+
         static async Task Main(string[] args)
         {
+            LoadCacheFromFile();
+
             if (args.Length == 0)
             {
                 DisplayError("No command given.");
@@ -25,23 +35,36 @@ namespace Kli
                 string os = GetOperatingSystem();
 
                 JObject requestBody = BuildRequestBody(userInput, cwd, os);
-                HttpResponseMessage response = await client.PostAsync(
-                    "https://api.openai.com/v1/chat/completions",
-                    new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json")
-                ).ConfigureAwait(false);
+                string command;
 
-                string responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                JObject jsonResponse = JObject.Parse(responseBody);
+                string cachedResponse = GetCachedResponse(userInput);
 
-                if (jsonResponse["error"] != null)
+                if (cachedResponse != null)
                 {
-                    DisplayError("Error from OpenAI API:");
-                    Console.WriteLine(jsonResponse["error"]["message"]);
-                    Console.WriteLine("Aborted.");
-                    return;
+                    command = cachedResponse;
+                }
+                else
+                {
+                    HttpResponseMessage response = await client.PostAsync(
+                        "https://api.openai.com/v1/chat/completions",
+                        new StringContent(requestBody.ToString(), Encoding.UTF8, "application/json")
+                    ).ConfigureAwait(false);
+
+                    string responseBody = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    JObject jsonResponse = JObject.Parse(responseBody);
+
+                    if (jsonResponse["error"] != null)
+                    {
+                        DisplayError("Error from OpenAI API:");
+                        Console.WriteLine(jsonResponse["error"]["message"]);
+                        Console.WriteLine("Aborted.");
+                        return;
+                    }
+
+                    command = jsonResponse["choices"][0]["message"]["content"].ToString();
+                    AddToCache(userInput, command);
                 }
 
-                string command = jsonResponse["choices"][0]["message"]["content"].ToString();
                 DisplayCommand(command);
 
                 if (UserConfirms())
@@ -137,5 +160,35 @@ namespace Kli
         {
             return Environment.OSVersion.Platform.ToString();
         }
+
+        private static string GetCachedResponse(string query)
+        {
+            if (_cache.TryGetValue(query, out string cachedResponse))
+            {
+                return cachedResponse;
+            }
+
+            return null;
+        }
+
+        private static void AddToCache(string query, string response)
+        {
+            _cache[query] = response;
+            SaveCacheToFile();
+        }
+
+        private static void SaveCacheToFile()
+        {
+            File.WriteAllText(CacheFileName, JsonConvert.SerializeObject(_cache));
+        }
+
+        private static void LoadCacheFromFile()
+        {
+            if (File.Exists(CacheFileName))
+            {
+                _cache = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(CacheFileName));
+            }
+        }
     }
 }
+
