@@ -9,6 +9,7 @@ Kli is a versatile command-line assistant that generates commands for PowerShell
 - Utilizes OpenAI's GPT-3.5-turbo for intelligent command suggestions
 - User confirmation before command execution
 - Easy-to-use and lightweight
+- Local caching of recent responses to reduce API calls and improve performance
 
 ## Getting Started
 
